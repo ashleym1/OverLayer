@@ -19,6 +19,8 @@ public class CitiesAtlas : IUserMod {
 
 public class HeightMapExtension : LoadingExtensionBase
 {
+    private UIButton button;
+
 	public override void OnLevelLoaded(LoadMode mode)
 	{
 		// Get the UIView object. This seems to be the top-level object for most
@@ -26,47 +28,54 @@ public class HeightMapExtension : LoadingExtensionBase
 		var uiView = UIView.GetAView();
 		
 		// Add a new button to the view.
-		var button = (UIButton)uiView.AddUIComponent(typeof(UIButton));
-		
-		// Set the text to show on the button.
-		button.text = "Terrain height!";
-		
-		// Set the button dimensions.
-		button.width = 150;
-		button.height = 40;
-		
-		// Style the button to look like a menu button.
-		button.normalBgSprite = "ButtonMenu";
-		button.disabledBgSprite = "ButtonMenuDisabled";
-		button.hoveredBgSprite = "ButtonMenuHovered";
-		button.focusedBgSprite = "ButtonMenuFocused";
-		button.pressedBgSprite = "ButtonMenuPressed";
-		button.textColor = new Color32(255, 255, 255, 255);
-		button.disabledTextColor = new Color32(7, 7, 7, 255);
-		button.hoveredTextColor = new Color32(7, 132, 255, 255);
-		button.focusedTextColor = new Color32(255, 255, 255, 255);
-		button.pressedTextColor = new Color32(30, 30, 44, 255);
-		
+		button = (UIButton)uiView.AddUIComponent(typeof(UIButton));
 
-		// Enable button sounds.
-		button.playAudioEvents = true;
+        // Set the text to show on the button tooltip.
+        button.tooltip = "Terrain Height";
+        button.tooltipAnchor = UITooltipAnchor.Floating;
+        button.RefreshTooltip();
+
+        // Set the button dimensions.
+        button.width = 42;
+        button.height = 42;
+
+        // Style the button to look like a menu button.
+        button.normalBgSprite = "OptionBase";
+        button.disabledBgSprite = "OptionBaseDisabled";
+        button.hoveredBgSprite = "OptionBaseHovered";
+        button.focusedBgSprite = "OptionBaseFocused";
+        button.pressedBgSprite = "OptionBasePressed";
+        button.normalFgSprite = "InfoIconTerrainHeight";
+        button.hoveredFgSprite = "InfoIconTerrainHeightHovered";
+        button.focusedFgSprite = "InfoIconTerrainHeightFocused";
+        button.pressedFgSprite = "InfoIconTerrainHeightPressed";
+
+        button.textColor = new Color32(255, 255, 255, 255);
+        button.disabledTextColor = new Color32(7, 7, 7, 255);
+        button.hoveredTextColor = new Color32(7, 132, 255, 255);
+        button.focusedTextColor = new Color32(255, 255, 255, 255);
+        button.pressedTextColor = new Color32(30, 30, 44, 255);
+
+        // Enable button sounds.
+        button.playAudioEvents = true;
 		
 		// Place the button.
-		button.transformPosition = new Vector3(-1.0f, 0.97f);
+		button.transformPosition = new Vector3(-1.2f, 0.98f);
 		
 		// Respond to button click.
-		button.eventClick += ButtonClick;
+		button.eventClicked += ButtonClick;
 	}
-
-
 	
 	private void ButtonClick(UIComponent component, UIMouseEventParameter eventParam)
 	{
 		if (Singleton<InfoManager>.instance.CurrentMode != InfoManager.InfoMode.TerrainHeight) {
 			Singleton<InfoManager>.instance.SetCurrentMode (InfoManager.InfoMode.TerrainHeight, InfoManager.SubInfoMode.Default);
+            button.state = UIButton.ButtonState.Focused;
 		} else {
 			Singleton<InfoManager>.instance.SetCurrentMode (InfoManager.InfoMode.None, InfoManager.SubInfoMode.Default);
-		}
+            button.state = UIButton.ButtonState.Normal;
+            button.Unfocus();
+        }
 	}
 
 
@@ -76,8 +85,8 @@ public class contourExtension : LoadingExtensionBase
 {
 	
 	private bool active;
-	
-	Texture2D[] originalMaps;
+    private UIButton button;
+	private Texture2D[] originalMaps;
 	
 	public override void OnLevelLoaded(LoadMode mode)
 	{
@@ -86,41 +95,45 @@ public class contourExtension : LoadingExtensionBase
 		var uiView = UIView.GetAView();
 		
 		// Add a new button to the view.
-		var button = (UIButton)uiView.AddUIComponent(typeof(UIButton));
-		
-		// Set the text to show on the button.
-		button.text = "Terrain contour!";
-		
-		// Set the button dimensions.
-		button.width = 150;
-		button.height = 40;
-		
-		// Style the button to look like a menu button.
-		button.normalBgSprite = "ButtonMenu";
-		button.disabledBgSprite = "ButtonMenuDisabled";
-		button.hoveredBgSprite = "ButtonMenuHovered";
-		button.focusedBgSprite = "ButtonMenuFocused";
-		button.pressedBgSprite = "ButtonMenuPressed";
-		button.textColor = new Color32(255, 255, 255, 255);
-		button.disabledTextColor = new Color32(7, 7, 7, 255);
-		button.hoveredTextColor = new Color32(7, 132, 255, 255);
-		button.focusedTextColor = new Color32(255, 255, 255, 255);
-		button.pressedTextColor = new Color32(30, 30, 44, 255);
-		
-		
-		// Enable button sounds.
-		button.playAudioEvents = true;
+		button = (UIButton)uiView.AddUIComponent(typeof(UIButton));
+
+        // Set the text to show on the button tooltip.
+        button.tooltip = "Terrain Contour";
+        button.tooltipAnchor = UITooltipAnchor.Floating;
+        button.RefreshTooltip();
+
+        // Set the button dimensions.
+        button.width = 42;
+        button.height = 42;
+
+        // Style the button to look like a menu button.
+        button.normalBgSprite = "OptionBase";
+        button.disabledBgSprite = "OptionBaseDisabled";
+        button.hoveredBgSprite = "OptionBaseHovered";
+        button.focusedBgSprite = "OptionBaseFocused";
+        button.pressedBgSprite = "OptionBasePressed";
+        button.normalFgSprite = "SubBarMonumentLandmarks";
+        button.hoveredFgSprite = "SubBarMonumentLandmarksHovered";
+        button.focusedFgSprite = "SubBarMonumentLandmarksFocused";
+        button.pressedFgSprite = "SubBarMonumentLandmarksPressed";
+
+        button.textColor = new Color32(255, 255, 255, 255);
+        button.disabledTextColor = new Color32(7, 7, 7, 255);
+        button.hoveredTextColor = new Color32(7, 132, 255, 255);
+        button.focusedTextColor = new Color32(255, 255, 255, 255);
+        button.pressedTextColor = new Color32(30, 30, 44, 255);
+
+        // Enable button sounds.
+        button.playAudioEvents = true;
 		
 		// Place the button.
-		button.transformPosition = new Vector3(-1.0f, 0.87f);
+		button.transformPosition = new Vector3(-1.11f, 0.98f);
 		
 		// Respond to button click.
-		button.eventClick += ButtonClick;
+		button.eventClicked += ButtonClick;
 	}
-	
-	
-	
-	private void ButtonClick(UIComponent component, UIMouseEventParameter eventParam)
+
+    private void ButtonClick(UIComponent component, UIMouseEventParameter eventParam)
 	{
 		if (!active) {
 			originalMaps = new Texture2D[Singleton<TerrainManager>.instance.m_patches.Length];
@@ -133,6 +146,7 @@ public class contourExtension : LoadingExtensionBase
 				i++;
 			}
 			active = true;
+            button.state = UIButton.ButtonState.Focused;
 		}else{
 			int i = 0;
 			foreach(TerrainPatch terrainPatch in Singleton<TerrainManager>.instance.m_patches)
@@ -141,8 +155,9 @@ public class contourExtension : LoadingExtensionBase
 				i++;
 			}
 			active = false;
-			
-		}
+            button.state = UIButton.ButtonState.Normal;
+            button.Unfocus();
+        }
 		
 	}
 	
