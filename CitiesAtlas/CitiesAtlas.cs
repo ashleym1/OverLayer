@@ -5,6 +5,7 @@ using ColossalFramework.UI;
 using System.Collections;
 using ColossalFramework.Plugins;
 using System;
+using System.IO;
 
 public class OverLayer : IUserMod {
 	
@@ -70,19 +71,28 @@ public class OverLayerExtension : LoadingExtensionBase
 
     private void ButtonClick(UIComponent component, UIMouseEventParameter eventParam)
 	{
-		if (!active) {
-			originalMaps = new Texture2D[Singleton<TerrainManager>.instance.m_patches.Length];
+		if (!active)
+        {
+            int l_tileSize = Singleton<TerrainManager>.instance.m_patches[0].m_heightMap.width;
+
+            byte[] bytes = File.ReadAllBytes("Files/overlay.png");
+            Texture2D l_overlay = new Texture2D(l_tileSize, l_tileSize);
+            l_overlay.LoadImage(bytes);
+
+            originalMaps = new Texture2D[Singleton<TerrainManager>.instance.m_patches.Length];
 			int i = 0;
 			foreach(TerrainPatch terrainPatch in Singleton<TerrainManager>.instance.m_patches)
 			{
 				originalMaps[i] = terrainPatch.m_surfaceMapB;
-				
-				terrainPatch.m_surfaceMapB = toColoredHeightMap(terrainPatch.m_heightMap);
+
+				terrainPatch.m_surfaceMapB = getSubOverlay(l_overlay, terrainPatch.m_x, terrainPatch.m_z);
 				i++;
 			}
 			active = true;
             button.state = UIButton.ButtonState.Focused;
-		}else{
+		}
+        else
+        {
 			int i = 0;
 			foreach(TerrainPatch terrainPatch in Singleton<TerrainManager>.instance.m_patches)
 			{
@@ -96,17 +106,21 @@ public class OverLayerExtension : LoadingExtensionBase
 		
 	}
 	
-	Texture2D toColoredHeightMap (Texture2D m_heightMap)
+	Texture2D getSubOverlay(Texture2D p_overlayImage, int p_X, int p_Y)
 	{
-		Texture2D coloredHeightMap = new Texture2D (m_heightMap.width, m_heightMap.height);
-		
-		for(int x  = 0; x < m_heightMap.width; x ++){
-			for(int y  = 0; y < m_heightMap.height; y ++){
-				coloredHeightMap.SetPixel(x,y,new Color(m_heightMap.GetPixel(x,y).g, m_heightMap.GetPixel(x,y).g, m_heightMap.GetPixel(x,y).g, m_heightMap.GetPixel(x,y).a));
+        int l_amplitudeX = p_overlayImage.width / 9;
+        int l_amplitudeY = p_overlayImage.height / 9;
+
+        Texture2D l_newTexture = new Texture2D(l_amplitudeX, l_amplitudeY);
+
+        for (int x = 0; x < l_amplitudeX; x ++){
+			for(int y = 0; y < l_amplitudeY; y ++){
+				l_newTexture.SetPixel(x, y, p_overlayImage.GetPixel(p_X * l_amplitudeX + x, p_Y * l_amplitudeY + y));
 			}
 		}
-		coloredHeightMap.Apply ();
-		return coloredHeightMap;
+        l_newTexture.Apply();
+
+        return l_newTexture;
 	}
 	
 	public void debug(String message) 
