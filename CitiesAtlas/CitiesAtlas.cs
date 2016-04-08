@@ -113,8 +113,10 @@ public class OverLayerExtension : LoadingExtensionBase
 
         Texture2D l_newTexture = new Texture2D(l_amplitudeX, l_amplitudeY);
 
-        for (int x = 0; x < l_amplitudeX; x ++){
-			for(int y = 0; y < l_amplitudeY; y ++){
+        for (int x = 0; x < l_amplitudeX; x++)
+        {
+			for(int y = 0; y < l_amplitudeY; y++)
+            {
 				l_newTexture.SetPixel(x, y, p_overlayImage.GetPixel(p_X * l_amplitudeX + x, p_Y * l_amplitudeY + y));
 			}
 		}
