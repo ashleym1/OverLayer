@@ -6,84 +6,19 @@ using System.Collections;
 using ColossalFramework.Plugins;
 using System;
 
-public class CitiesAtlas : IUserMod {
+public class OverLayer : IUserMod {
 	
 	public string Name {
-		get { return "Cities Atlas"; }
+		get { return "OverLayer"; }
 	}
 	
 	public string Description {
-		get { return "Cities Atlas adds a height map overlay to Cities:Skylines. Now you can plan your cities around those hills:)."; }
+		get { return "Overlayer draws a high resolution picture over your map which follows the terrain height."; }
 	}
 }
 
-public class HeightMapExtension : LoadingExtensionBase
+public class OverLayerExtension : LoadingExtensionBase
 {
-    private UIButton button;
-
-	public override void OnLevelLoaded(LoadMode mode)
-	{
-		// Get the UIView object. This seems to be the top-level object for most
-		// of the UI.
-		var uiView = UIView.GetAView();
-		
-		// Add a new button to the view.
-		button = (UIButton)uiView.AddUIComponent(typeof(UIButton));
-
-        // Set the text to show on the button tooltip.
-        button.tooltip = "Terrain Height";
-        button.tooltipAnchor = UITooltipAnchor.Floating;
-        button.RefreshTooltip();
-
-        // Set the button dimensions.
-        button.width = 42;
-        button.height = 42;
-
-        // Style the button to look like a menu button.
-        button.normalBgSprite = "OptionBase";
-        button.disabledBgSprite = "OptionBaseDisabled";
-        button.hoveredBgSprite = "OptionBaseHovered";
-        button.focusedBgSprite = "OptionBaseFocused";
-        button.pressedBgSprite = "OptionBasePressed";
-        button.normalFgSprite = "InfoIconTerrainHeight";
-        button.hoveredFgSprite = "InfoIconTerrainHeightHovered";
-        button.focusedFgSprite = "InfoIconTerrainHeightFocused";
-        button.pressedFgSprite = "InfoIconTerrainHeightPressed";
-
-        button.textColor = new Color32(255, 255, 255, 255);
-        button.disabledTextColor = new Color32(7, 7, 7, 255);
-        button.hoveredTextColor = new Color32(7, 132, 255, 255);
-        button.focusedTextColor = new Color32(255, 255, 255, 255);
-        button.pressedTextColor = new Color32(30, 30, 44, 255);
-
-        // Enable button sounds.
-        button.playAudioEvents = true;
-		
-		// Place the button.
-		button.transformPosition = new Vector3(-1.2f, 0.98f);
-		
-		// Respond to button click.
-		button.eventClicked += ButtonClick;
-	}
-	
-	private void ButtonClick(UIComponent component, UIMouseEventParameter eventParam)
-	{
-		if (Singleton<InfoManager>.instance.CurrentMode != InfoManager.InfoMode.TerrainHeight) {
-			Singleton<InfoManager>.instance.SetCurrentMode (InfoManager.InfoMode.TerrainHeight, InfoManager.SubInfoMode.Default);
-            button.state = UIButton.ButtonState.Focused;
-		} else {
-			Singleton<InfoManager>.instance.SetCurrentMode (InfoManager.InfoMode.None, InfoManager.SubInfoMode.Default);
-            button.state = UIButton.ButtonState.Normal;
-            button.Unfocus();
-        }
-	}
-
-
-}
-
-public class contourExtension : LoadingExtensionBase
-{
-	
 	private bool active;
     private UIButton button;
 	private Texture2D[] originalMaps;
