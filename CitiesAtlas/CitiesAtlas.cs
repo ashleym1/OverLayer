@@ -88,8 +88,7 @@ public class OverLayerExtension : LoadingExtensionBase
 			int i = 0;
 			foreach(TerrainPatch terrainPatch in Singleton<TerrainManager>.instance.m_patches)
 			{
-                debug("Tilesize: (" + terrainPatch.m_surfaceMapA.width + ";" + terrainPatch.m_surfaceMapA.height + ")");
-
+                //debug("Tilesize: (" + terrainPatch.m_surfaceMapA.width + ";" + terrainPatch.m_surfaceMapA.height + ")");
                 originalMaps[i] = terrainPatch.m_surfaceMapB;
 
 				terrainPatch.m_surfaceMapB = getSubOverlay(l_overlay, terrainPatch.m_x, terrainPatch.m_z);
@@ -117,16 +116,18 @@ public class OverLayerExtension : LoadingExtensionBase
 	{
         int l_amplitudeX = (int) Math.Floor(p_overlayImage.width / 9.0);
         int l_amplitudeY = (int) Math.Floor(p_overlayImage.height / 9.0);
+        int l_offsetX = (int)Math.Floor(l_amplitudeX / 32.0);
+        int l_offsetY = (int)Math.Floor(l_amplitudeY / 32.0);
 
-        Texture2D l_newTexture = new Texture2D(l_amplitudeX, l_amplitudeY);
+        Texture2D l_newTexture = new Texture2D(l_amplitudeX + l_offsetX * 2, l_amplitudeY + l_offsetY * 2);
+        //debug("Tile from (" + (p_X * l_amplitudeX) + "," + (p_Y * l_amplitudeY) + ") to (" + (p_X * l_amplitudeX + l_amplitudeX - 1) + "," + (p_Y * l_amplitudeY + l_amplitudeY - 1) + ")");
 
-        debug("Tile from (" + (p_X * l_amplitudeX) + "," + (p_Y * l_amplitudeY) + ") to (" + (p_X * l_amplitudeX + l_amplitudeX - 1) + "," + (p_Y * l_amplitudeY + l_amplitudeY - 1) + ")");
-
-        for (int x = 0; x < l_amplitudeX; x++)
+        for (int x = 0; x < l_amplitudeX + l_offsetX * 2; x++)
         {
-			for(int y = 0; y < l_amplitudeY; y++)
+			for(int y = 0; y < l_amplitudeY + l_offsetY * 2; y++)
             {
-				l_newTexture.SetPixel(x, y, p_overlayImage.GetPixel(p_X * l_amplitudeX + x, p_Y * l_amplitudeY + y));
+				l_newTexture.SetPixel(x, y, p_overlayImage.GetPixel(    p_X * l_amplitudeX + x - l_offsetX, 
+                                                                        p_Y * l_amplitudeY + y - l_offsetY));
 			}
 		}
         l_newTexture.Apply();
