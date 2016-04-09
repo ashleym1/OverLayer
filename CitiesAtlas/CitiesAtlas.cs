@@ -2,8 +2,6 @@ using ICities;
 using UnityEngine;
 using ColossalFramework;
 using ColossalFramework.UI;
-using System.Collections;
-using ColossalFramework.Plugins;
 using System;
 using System.IO;
 
@@ -20,123 +18,120 @@ public class OverLayer : IUserMod {
 
 public class OverLayerExtension : LoadingExtensionBase
 {
-	private bool active;
-    private UIButton button;
-	private Texture2D[] originalMaps;
+	private bool m_active;
+	private UIButton m_button;
+	private Texture2D[] m_originalMaps;
 	
-	public override void OnLevelLoaded(LoadMode mode)
+	public override void OnLevelLoaded(LoadMode p_mode)
 	{
 		// Get the UIView object. This seems to be the top-level object for most
 		// of the UI.
-		var uiView = UIView.GetAView();
+		var l_uiView = UIView.GetAView();
 		
 		// Add a new button to the view.
-		button = (UIButton)uiView.AddUIComponent(typeof(UIButton));
+		m_button = (UIButton)l_uiView.AddUIComponent(typeof(UIButton));
 
-        // Set the text to show on the button tooltip.
-        button.tooltip = "Terrain Contour";
-        button.tooltipAnchor = UITooltipAnchor.Floating;
-        button.RefreshTooltip();
+		// Set the text to show on the button tooltip.
+		m_button.tooltip = "Terrain Contour";
+		m_button.tooltipAnchor = UITooltipAnchor.Floating;
+		m_button.RefreshTooltip();
 
-        // Set the button dimensions.
-        button.width = 42;
-        button.height = 42;
+		// Set the button dimensions.
+		m_button.width = 42;
+		m_button.height = 42;
 
-        // Style the button to look like a menu button.
-        button.normalBgSprite = "OptionBase";
-        button.disabledBgSprite = "OptionBaseDisabled";
-        button.hoveredBgSprite = "OptionBaseHovered";
-        button.focusedBgSprite = "OptionBaseFocused";
-        button.pressedBgSprite = "OptionBasePressed";
-        button.normalFgSprite = "RoadOptionUpgrade";
-        button.hoveredFgSprite = "RoadOptionUpgradeHovered";
-        button.focusedFgSprite = "RoadOptionUpgradeFocused";
-        button.pressedFgSprite = "RoadOptionUpgradePressed";
+		// Style the button to look like a menu button.
+		m_button.normalBgSprite = "OptionBase";
+		m_button.disabledBgSprite = "OptionBaseDisabled";
+		m_button.hoveredBgSprite = "OptionBaseHovered";
+		m_button.focusedBgSprite = "OptionBaseFocused";
+		m_button.pressedBgSprite = "OptionBasePressed";
+		m_button.normalFgSprite = "RoadOptionUpgrade";
+		m_button.hoveredFgSprite = "RoadOptionUpgradeHovered";
+		m_button.focusedFgSprite = "RoadOptionUpgradeFocused";
+		m_button.pressedFgSprite = "RoadOptionUpgradePressed";
 
-        button.textColor = new Color32(255, 255, 255, 255);
-        button.disabledTextColor = new Color32(7, 7, 7, 255);
-        button.hoveredTextColor = new Color32(7, 132, 255, 255);
-        button.focusedTextColor = new Color32(255, 255, 255, 255);
-        button.pressedTextColor = new Color32(30, 30, 44, 255);
+		m_button.textColor = new Color32(255, 255, 255, 255);
+		m_button.disabledTextColor = new Color32(7, 7, 7, 255);
+		m_button.hoveredTextColor = new Color32(7, 132, 255, 255);
+		m_button.focusedTextColor = new Color32(255, 255, 255, 255);
+		m_button.pressedTextColor = new Color32(30, 30, 44, 255);
 
-        // Enable button sounds.
-        button.playAudioEvents = true;
+		// Enable button sounds.
+		m_button.playAudioEvents = true;
 		
 		// Place the button.
-		button.transformPosition = new Vector3(-1.11f, 0.98f);
+		m_button.transformPosition = new Vector3(-1.11f, 0.98f);
 		
 		// Respond to button click.
-		button.eventClicked += ButtonClick;
+		m_button.eventClicked += ButtonClick;
 	}
 
-    private void ButtonClick(UIComponent component, UIMouseEventParameter eventParam)
+	private void ButtonClick(UIComponent p_component, UIMouseEventParameter p_eventParam)
 	{
-		if (!active)
-        {
-            int l_tileSize = Singleton<TerrainManager>.instance.m_patches[0].m_surfaceMapA.width;
+		if (!m_active)
+		{
+			int l_tileSize = Singleton<TerrainManager>.instance.m_patches[0].m_surfaceMapA.width;
 
-            byte[] bytes = File.ReadAllBytes("Files/overlay.png");
-            if (bytes == null)
-            {
-                return;
-            }
+			byte[] bytes = File.ReadAllBytes("Files/overlay.png");
+			if (bytes == null)
+			{
+				return;
+			}
 
-            Texture2D l_overlay = new Texture2D(l_tileSize * 9, l_tileSize * 9);
-            l_overlay.LoadImage(bytes);
+			Texture2D l_overlay = new Texture2D(l_tileSize * 9, l_tileSize * 9);
+			l_overlay.LoadImage(bytes);
 
-            originalMaps = new Texture2D[Singleton<TerrainManager>.instance.m_patches.Length];
+			m_originalMaps = new Texture2D[Singleton<TerrainManager>.instance.m_patches.Length];
 			int i = 0;
 			foreach(TerrainPatch terrainPatch in Singleton<TerrainManager>.instance.m_patches)
 			{
-                //debug("Tilesize: (" + terrainPatch.m_surfaceMapA.width + ";" + terrainPatch.m_surfaceMapA.height + ")");
-                originalMaps[i] = terrainPatch.m_surfaceMapB;
-
-				terrainPatch.m_surfaceMapB = getSubOverlay(l_overlay, terrainPatch.m_x, terrainPatch.m_z);
+				m_originalMaps[i] = terrainPatch.m_surfaceMapB;
+				terrainPatch.m_surfaceMapB = GetSubOverlay(l_overlay, terrainPatch.m_x, terrainPatch.m_z);
 				i++;
 			}
-			active = true;
-            button.state = UIButton.ButtonState.Focused;
+			m_active = true;
+			m_button.state = UIButton.ButtonState.Focused;
 		}
-        else
-        {
+		else
+		{
 			int i = 0;
 			foreach(TerrainPatch terrainPatch in Singleton<TerrainManager>.instance.m_patches)
 			{
-				terrainPatch.m_surfaceMapB = originalMaps[i];
+				terrainPatch.m_surfaceMapB = m_originalMaps[i];
 				i++;
 			}
-			active = false;
-            button.state = UIButton.ButtonState.Normal;
-            button.Unfocus();
-        }
+			m_active = false;
+			m_button.state = UIButton.ButtonState.Normal;
+			m_button.Unfocus();
+		}
 		
 	}
 	
-	Texture2D getSubOverlay(Texture2D p_overlayImage, int p_X, int p_Y)
+	Texture2D GetSubOverlay(Texture2D p_overlayImage, int p_X, int p_Y)
 	{
-        int l_amplitudeX = (int) Math.Floor(p_overlayImage.width / 9.0);
-        int l_amplitudeY = (int) Math.Floor(p_overlayImage.height / 9.0);
-        int l_offsetX = (int)Math.Floor(l_amplitudeX / 32.0);
-        int l_offsetY = (int)Math.Floor(l_amplitudeY / 32.0);
+		int l_amplitudeX = (int) Math.Floor(p_overlayImage.width / 9.0);
+		int l_amplitudeY = (int) Math.Floor(p_overlayImage.height / 9.0);
+		int l_offsetX = (int) Math.Floor(l_amplitudeX / 32.0);
+		int l_offsetY = (int) Math.Floor(l_amplitudeY / 32.0);
 
-        Texture2D l_newTexture = new Texture2D(l_amplitudeX + l_offsetX * 2, l_amplitudeY + l_offsetY * 2);
-        //debug("Tile from (" + (p_X * l_amplitudeX) + "," + (p_Y * l_amplitudeY) + ") to (" + (p_X * l_amplitudeX + l_amplitudeX - 1) + "," + (p_Y * l_amplitudeY + l_amplitudeY - 1) + ")");
+		Texture2D l_newTexture = new Texture2D(l_amplitudeX + l_offsetX * 2, l_amplitudeY + l_offsetY * 2);
 
-        for (int x = 0; x < l_amplitudeX + l_offsetX * 2; x++)
-        {
+		for (int x = 0; x < l_amplitudeX + l_offsetX * 2; x++)
+		{
 			for(int y = 0; y < l_amplitudeY + l_offsetY * 2; y++)
-            {
+			{
 				l_newTexture.SetPixel(x, y, p_overlayImage.GetPixel(    p_X * l_amplitudeX + x - l_offsetX, 
-                                                                        p_Y * l_amplitudeY + y - l_offsetY));
+																		p_Y * l_amplitudeY + y - l_offsetY));
 			}
 		}
-        l_newTexture.Apply();
+		l_newTexture.Apply();
 
-        return l_newTexture;
+		return l_newTexture;
 	}
 	
-	public void debug(String message) 
+	public void DebugLog(String p_message) 
 	{
-		DebugOutputPanel.AddMessage (ColossalFramework.Plugins.PluginManager.MessageType.Message, message);
+		DebugOutputPanel.AddMessage(ColossalFramework.Plugins.PluginManager.MessageType.Message, p_message);
 	}
 }
