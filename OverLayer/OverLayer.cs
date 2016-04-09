@@ -12,7 +12,7 @@ public class OverLayer : IUserMod {
 	}
 	
 	public string Description {
-		get { return "Overlayer draws a high resolution picture over your map which follows the terrain height."; }
+		get { return "Draws a high resolution picture over your map which follows the terrain height."; }
 	}
 }
 
