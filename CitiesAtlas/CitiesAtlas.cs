@@ -48,10 +48,10 @@ public class OverLayerExtension : LoadingExtensionBase
         button.hoveredBgSprite = "OptionBaseHovered";
         button.focusedBgSprite = "OptionBaseFocused";
         button.pressedBgSprite = "OptionBasePressed";
-        button.normalFgSprite = "SubBarMonumentLandmarks";
-        button.hoveredFgSprite = "SubBarMonumentLandmarksHovered";
-        button.focusedFgSprite = "SubBarMonumentLandmarksFocused";
-        button.pressedFgSprite = "SubBarMonumentLandmarksPressed";
+        button.normalFgSprite = "RoadOptionUpgrade";
+        button.hoveredFgSprite = "RoadOptionUpgradeHovered";
+        button.focusedFgSprite = "RoadOptionUpgradeFocused";
+        button.pressedFgSprite = "RoadOptionUpgradePressed";
 
         button.textColor = new Color32(255, 255, 255, 255);
         button.disabledTextColor = new Color32(7, 7, 7, 255);
@@ -73,17 +73,24 @@ public class OverLayerExtension : LoadingExtensionBase
 	{
 		if (!active)
         {
-            int l_tileSize = Singleton<TerrainManager>.instance.m_patches[0].m_heightMap.width;
+            int l_tileSize = Singleton<TerrainManager>.instance.m_patches[0].m_surfaceMapA.width;
 
             byte[] bytes = File.ReadAllBytes("Files/overlay.png");
-            Texture2D l_overlay = new Texture2D(l_tileSize, l_tileSize);
+            if (bytes == null)
+            {
+                return;
+            }
+
+            Texture2D l_overlay = new Texture2D(l_tileSize * 9, l_tileSize * 9);
             l_overlay.LoadImage(bytes);
 
             originalMaps = new Texture2D[Singleton<TerrainManager>.instance.m_patches.Length];
 			int i = 0;
 			foreach(TerrainPatch terrainPatch in Singleton<TerrainManager>.instance.m_patches)
 			{
-				originalMaps[i] = terrainPatch.m_surfaceMapB;
+                debug("Tilesize: (" + terrainPatch.m_surfaceMapA.width + ";" + terrainPatch.m_surfaceMapA.height + ")");
+
+                originalMaps[i] = terrainPatch.m_surfaceMapB;
 
 				terrainPatch.m_surfaceMapB = getSubOverlay(l_overlay, terrainPatch.m_x, terrainPatch.m_z);
 				i++;
@@ -108,10 +115,12 @@ public class OverLayerExtension : LoadingExtensionBase
 	
 	Texture2D getSubOverlay(Texture2D p_overlayImage, int p_X, int p_Y)
 	{
-        int l_amplitudeX = p_overlayImage.width / 9;
-        int l_amplitudeY = p_overlayImage.height / 9;
+        int l_amplitudeX = (int) Math.Floor(p_overlayImage.width / 9.0);
+        int l_amplitudeY = (int) Math.Floor(p_overlayImage.height / 9.0);
 
         Texture2D l_newTexture = new Texture2D(l_amplitudeX, l_amplitudeY);
+
+        debug("Tile from (" + (p_X * l_amplitudeX) + "," + (p_Y * l_amplitudeY) + ") to (" + (p_X * l_amplitudeX + l_amplitudeX - 1) + "," + (p_Y * l_amplitudeY + l_amplitudeY - 1) + ")");
 
         for (int x = 0; x < l_amplitudeX; x++)
         {
