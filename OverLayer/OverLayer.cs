@@ -94,7 +94,11 @@ public class OverLayerExtension : LoadingExtensionBase
 			int l_tileSize = Singleton<TerrainManager>.instance.m_patches[0].m_surfaceMapA.width;
 			byte[] l_bytes = GetOverlayBytes();
 
-			if (l_bytes == null) return;
+			if (l_bytes == null)
+			{
+				DebugLog("Could not load image. Are you sure it is placed at the correct location?");
+				return;
+			}
 
 			Texture2D l_overlay = new Texture2D(l_tileSize * 9, l_tileSize * 9);
 			l_overlay.LoadImage(l_bytes);
@@ -157,8 +161,10 @@ public class OverLayerExtension : LoadingExtensionBase
 	{
 		int l_amplitudeX = (int)Math.Floor(p_overlayImage.width / 9.0);
 		int l_amplitudeY = (int)Math.Floor(p_overlayImage.height / 9.0);
-		int l_offsetX = (int)Math.Floor(l_amplitudeX * 0.0625);
-		int l_offsetY = (int)Math.Floor(l_amplitudeY * 0.0625);
+
+		// On a tile of side 128, this will result in an offset of 4. Any number above/below 4 will not work properly. =(
+		int l_offsetX = (int)Math.Floor(l_amplitudeX * 0.03125);
+		int l_offsetY = (int)Math.Floor(l_amplitudeY * 0.03125);
 
 		Texture2D l_newTexture = new Texture2D(l_amplitudeX + l_offsetX * 2, l_amplitudeY + l_offsetY * 2);
 
