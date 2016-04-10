@@ -11,7 +11,7 @@ If you copy and paste the respective path above into your file browser (Windows:
 
 ### About the image:
 
-The image should be a square PNG image (alpha layer allowed and encouraged) with sides of 1152 pixels or any multiples (the higher the multiple, the bigger the resolution in-game). You can download a template overlay image with all tiles delimited [here]().
+The image should be a square PNG image (alpha layer allowed and encouraged) with sides of 1152 pixels or any multiples (the higher the multiple, the bigger the resolution in-game). You can download a template overlay image with all tiles delimited [**here**](https://raw.githubusercontent.com/brunophilipe/OverLayer/master/Resources/overlay_base.png).
 
 ### Screenshots
 
