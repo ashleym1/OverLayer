@@ -107,7 +107,7 @@ public class OverLayerExtension : LoadingExtensionBase
 			int l_patchesCount = Singleton<TerrainManager>.instance.m_patches.Length;
 			int i = 0;
 
-			if (m_lastTileOverlays == null)
+			if (m_lastTileOverlays == null || Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
 			{
 				m_lastTileOverlays = new Texture2D[l_patchesCount];
 				
