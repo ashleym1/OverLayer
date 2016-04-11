@@ -27,7 +27,8 @@ public class OverLayerExtension : LoadingExtensionBase
 	private Texture2D[] m_originalMaps;
 
 	private DateTime m_lastBrytesWrite;
-	private byte[] m_lastBytes;
+	private Texture2D m_lastTexture;
+	private Texture2D[] m_lastTileOverlays;
 
 	public override void OnLevelLoaded(LoadMode p_mode)
 	{
@@ -72,6 +73,8 @@ public class OverLayerExtension : LoadingExtensionBase
 
 		// Respond to button click.
 		m_button.eventClicked += ButtonClick;
+
+		DebugLog("Loaded");
 	}
 
 	public override void OnLevelUnloading()
@@ -91,25 +94,37 @@ public class OverLayerExtension : LoadingExtensionBase
 	{
 		if (!m_active)
 		{
-			int l_tileSize = Singleton<TerrainManager>.instance.m_patches[0].m_surfaceMapA.width;
-			byte[] l_bytes = GetOverlayBytes();
+			int l_tileSizeX = Singleton<TerrainManager>.instance.m_patches[0].m_surfaceMapA.width;
+			int l_tileSizeY = Singleton<TerrainManager>.instance.m_patches[0].m_surfaceMapA.height;
+			Texture2D l_overlay = GetOverlayTexture(l_tileSizeX * 9, l_tileSizeY * 9);
 
-			if (l_bytes == null)
+			if (l_overlay == null)
 			{
 				DebugLog("Could not load image. Are you sure it is placed at the correct location?");
 				return;
 			}
 
-			Texture2D l_overlay = new Texture2D(l_tileSize * 9, l_tileSize * 9);
-			l_overlay.LoadImage(l_bytes);
-
-			m_originalMaps = new Texture2D[Singleton<TerrainManager>.instance.m_patches.Length];
-
+			int l_patchesCount = Singleton<TerrainManager>.instance.m_patches.Length;
 			int i = 0;
+
+			if (m_lastTileOverlays == null)
+			{
+				m_lastTileOverlays = new Texture2D[l_patchesCount];
+				
+				foreach (TerrainPatch terrainPatch in Singleton<TerrainManager>.instance.m_patches)
+				{
+					m_lastTileOverlays[i] = GetSubOverlay(l_overlay, terrainPatch.m_x, terrainPatch.m_z);
+					i++;
+				}
+			}
+
+			m_originalMaps = new Texture2D[l_patchesCount];
+
+			i = 0;
 			foreach (TerrainPatch terrainPatch in Singleton<TerrainManager>.instance.m_patches)
 			{
 				m_originalMaps[i] = terrainPatch.m_surfaceMapB;
-				terrainPatch.m_surfaceMapB = GetSubOverlay(l_overlay, terrainPatch.m_x, terrainPatch.m_z);
+				terrainPatch.m_surfaceMapB = m_lastTileOverlays[i];
 				i++;
 			}
 
@@ -130,25 +145,27 @@ public class OverLayerExtension : LoadingExtensionBase
 		}
 	}
 
-	private byte[] GetOverlayBytes()
+	private Texture2D GetOverlayTexture(int p_width, int p_height)
 	{
 		try
 		{
 			DateTime l_newBytesWrite = File.GetLastWriteTime(c_filename);
 
-
-			if (m_lastBrytesWrite != null && m_lastBytes != null)
+			if (m_lastBrytesWrite != null && m_lastTexture != null)
 			{
 				if (m_lastBrytesWrite.Equals(l_newBytesWrite))
 				{
-					return m_lastBytes;
+					return m_lastTexture;
 				}
 			}
 
+			byte[] l_bytes = File.ReadAllBytes(c_filename);
 			m_lastBrytesWrite = l_newBytesWrite;
-			m_lastBytes = File.ReadAllBytes(c_filename);
+			m_lastTexture = new Texture2D(p_width, p_height);
+			m_lastTexture.LoadImage(l_bytes);
+			m_lastTileOverlays = null;
 
-			return m_lastBytes;
+			return m_lastTexture;
 		}
 		catch (Exception p_exception)
 		{
