@@ -18,20 +18,17 @@ public class OverLayer : IUserMod
 	}
 }
 
-public class OverLayerExtension : LoadingExtensionBase
+public class OverLayerExtension : LoadingExtensionBase, OverLayerTool.Delegate
 {
 	private const String c_filename = "Files/overlay.png";
 
-	private bool m_active;
+	private OverLayerTool m_overLayerTool;
 	private UIButton m_button;
-	private Texture2D[] m_originalMaps;
-
-	private DateTime m_lastBrytesWrite;
-	private Texture2D m_lastTexture;
-	private Texture2D[] m_lastTileOverlays;
 
 	public override void OnLevelLoaded(LoadMode p_mode)
 	{
+		if (p_mode == LoadMode.LoadAsset || p_mode == LoadMode.NewAsset) return;
+
 		// Get the UIView object. This seems to be the top-level object for most
 		// of the UI.
 		var l_uiView = UIView.GetAView();
@@ -74,23 +71,80 @@ public class OverLayerExtension : LoadingExtensionBase
 		// Respond to button click.
 		m_button.eventClicked += ButtonClick;
 
+		m_overLayerTool = m_button.gameObject.AddComponent<OverLayerTool>();
+
+		// Initialize the Tool itself
+		m_overLayerTool.SetDelegate(this);
+
 		DebugLog("Loaded");
 	}
 
 	public override void OnLevelUnloading()
 	{
-		if (m_active)
+		if (m_overLayerTool.GetIsActive())
 		{
-			ToggleActive();
+			m_overLayerTool.ToggleActive();
 		}
 	}
 
 	private void ButtonClick(UIComponent p_component, UIMouseEventParameter p_eventParam)
 	{
-		ToggleActive();
+		m_overLayerTool.ToggleActive();
 	}
 
-	private void ToggleActive()
+	public static void DebugLog(String p_message)
+	{
+		DebugOutputPanel.AddMessage(ColossalFramework.Plugins.PluginManager.MessageType.Message, "[OverLayer] " + p_message);
+	}
+
+	public void OverLayerToolDidUpdateState(bool p_newState)
+	{
+		m_button.state = p_newState ? UIButton.ButtonState.Focused : UIButton.ButtonState.Normal;
+
+		if (!p_newState)
+		{
+			m_button.Unfocus();
+		}
+	}
+}
+
+internal class OverLayerTool : MonoBehaviour
+{
+	private const String c_filename = "Files/overlay.png";
+
+	private Delegate m_delegate;
+	private bool m_active = false;
+	private bool m_shouldActivate = false;
+	private Texture2D[] m_originalMaps;
+
+	private DateTime m_lastBrytesWrite;
+	private Texture2D m_lastTexture;
+	private Texture2D[] m_lastTileOverlays;
+
+	public void Awake()
+	{
+		enabled = true;
+	}
+
+	public void SetDelegate(Delegate p_delegate)
+	{
+		m_delegate = p_delegate;
+	}
+
+	public void Update()
+	{
+		if (m_active != m_shouldActivate)
+		{
+			ToggleActiveInternal();
+		}
+	}
+
+	public void ToggleActive()
+	{
+		m_shouldActivate = !m_active;
+	}
+
+	private void ToggleActiveInternal()
 	{
 		if (!m_active)
 		{
@@ -100,7 +154,7 @@ public class OverLayerExtension : LoadingExtensionBase
 
 			if (l_overlay == null)
 			{
-				DebugLog("Could not load image. Are you sure it is placed at the correct location?");
+				OverLayerExtension.DebugLog("Could not load image. Are you sure it is placed at the correct location?");
 				return;
 			}
 
@@ -110,7 +164,7 @@ public class OverLayerExtension : LoadingExtensionBase
 			if (m_lastTileOverlays == null || Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
 			{
 				m_lastTileOverlays = new Texture2D[l_patchesCount];
-				
+
 				foreach (TerrainPatch terrainPatch in Singleton<TerrainManager>.instance.m_patches)
 				{
 					m_lastTileOverlays[i] = GetSubOverlay(l_overlay, terrainPatch.m_x, terrainPatch.m_z);
@@ -129,7 +183,7 @@ public class OverLayerExtension : LoadingExtensionBase
 			}
 
 			m_active = true;
-			m_button.state = UIButton.ButtonState.Focused;
+			NotifyDelegate();
 		}
 		else
 		{
@@ -139,9 +193,17 @@ public class OverLayerExtension : LoadingExtensionBase
 				terrainPatch.m_surfaceMapB = m_originalMaps[i];
 				i++;
 			}
+
 			m_active = false;
-			m_button.state = UIButton.ButtonState.Normal;
-			m_button.Unfocus();
+			NotifyDelegate();
+		}
+	}
+
+	private void NotifyDelegate()
+	{
+		if (m_delegate != null)
+		{
+			m_delegate.OverLayerToolDidUpdateState(m_active);
 		}
 	}
 
@@ -169,7 +231,7 @@ public class OverLayerExtension : LoadingExtensionBase
 		}
 		catch (Exception p_exception)
 		{
-			DebugLog("Got exception: " + p_exception.Message);
+			OverLayerExtension.DebugLog("Got exception: " + p_exception.Message);
 			return null;
 		}
 	}
@@ -189,7 +251,7 @@ public class OverLayerExtension : LoadingExtensionBase
 		{
 			for (int y = 0; y < l_amplitudeY + l_offsetY * 2; y++)
 			{
-				l_newTexture.SetPixel(x, y, p_overlayImage.GetPixel(	p_X * l_amplitudeX + x - l_offsetX,
+				l_newTexture.SetPixel(x, y, p_overlayImage.GetPixel(p_X * l_amplitudeX + x - l_offsetX,
 																		p_Y * l_amplitudeY + y - l_offsetY));
 			}
 		}
@@ -198,8 +260,13 @@ public class OverLayerExtension : LoadingExtensionBase
 		return l_newTexture;
 	}
 
-	public void DebugLog(String p_message)
+	public bool GetIsActive()
 	{
-		DebugOutputPanel.AddMessage(ColossalFramework.Plugins.PluginManager.MessageType.Message, "[OverLayer] " + p_message);
+		return m_active;
+	}
+
+	public interface Delegate
+	{
+		void OverLayerToolDidUpdateState(bool p_newState);
 	}
 }
