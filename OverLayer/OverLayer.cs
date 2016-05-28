@@ -212,15 +212,15 @@ internal class OverLayerTool : SimulationManagerBase<OverLayerTool, MonoBehaviou
 
 		base.SimulationStepImpl(subStep);
 
-		float l_delta = 10f;
+		float l_delta = 5f;
 
 		if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
 		{
-			l_delta *= 5f;
+			l_delta *= 10f;
 		}
 		else if (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl))
 		{
-			l_delta /= 5f;
+			l_delta /= 10f;
 		}
 
 		if (Input.GetKey(KeyCode.RightArrow))
@@ -275,7 +275,7 @@ internal class OverLayerTool : SimulationManagerBase<OverLayerTool, MonoBehaviou
 			new Vector3(-l_dimension + m_translation.x, 0, l_dimension + m_translation.y)
 		);
 
-		renderManager.OverlayEffect.DrawQuad(cameraInfo, m_lastTexture, Color.white, position, -1, 1000, true, true);
+		renderManager.OverlayEffect.DrawQuad(cameraInfo, m_lastTexture, Color.white, position, -1f, 1800f, false, true);
 	}
 
 	private void NotifyDelegate()
