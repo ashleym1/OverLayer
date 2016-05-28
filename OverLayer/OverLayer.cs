@@ -2,6 +2,7 @@ using ICities;
 using UnityEngine;
 using ColossalFramework;
 using ColossalFramework.UI;
+using ColossalFramework.Math;
 using System;
 using System.IO;
 
@@ -22,7 +23,6 @@ public class OverLayerExtension : LoadingExtensionBase, OverLayerTool.Delegate
 {
 	private const String c_filename = "Files/overlay.png";
 
-	private OverLayerTool m_overLayerTool;
 	private UIButton m_button;
 
 	public override void OnLevelLoaded(LoadMode p_mode)
@@ -71,25 +71,37 @@ public class OverLayerExtension : LoadingExtensionBase, OverLayerTool.Delegate
 		// Respond to button click.
 		m_button.eventClicked += ButtonClick;
 
-		m_overLayerTool = m_button.gameObject.AddComponent<OverLayerTool>();
-
-		// Initialize the Tool itself
-		m_overLayerTool.SetDelegate(this);
+		try
+		{
+			OverLayerTool.OnLevelLoaded();
+			OverLayerTool.SetDelegate(this);
+		}
+		catch (Exception e)
+		{
+			DebugLog("Error loading tool: " + e.ToString());
+		}
 
 		DebugLog("Loaded");
 	}
 
 	public override void OnLevelUnloading()
 	{
-		if (m_overLayerTool.GetIsActive())
+		OverLayerTool l_overLayerTool = OverLayerTool.instance;
+
+		if (l_overLayerTool != null && l_overLayerTool.GetIsActive())
 		{
-			m_overLayerTool.ToggleActive();
+			l_overLayerTool.ToggleActive();
 		}
 	}
 
 	private void ButtonClick(UIComponent p_component, UIMouseEventParameter p_eventParam)
 	{
-		m_overLayerTool.ToggleActive();
+		OverLayerTool l_overLayerTool = OverLayerTool.instance;
+
+		if (l_overLayerTool != null)
+		{
+			l_overLayerTool.ToggleActive();
+		}
 	}
 
 	public static void DebugLog(String p_message)
@@ -101,34 +113,53 @@ public class OverLayerExtension : LoadingExtensionBase, OverLayerTool.Delegate
 	{
 		m_button.state = p_newState ? UIButton.ButtonState.Focused : UIButton.ButtonState.Normal;
 
-		if (!p_newState)
+		if (!p_newState && m_button != null)
 		{
 			m_button.Unfocus();
 		}
 	}
 }
 
-internal class OverLayerTool : MonoBehaviour
+internal class OverLayerTool : SimulationManagerBase<OverLayerTool, MonoBehaviour>, ISimulationManager, IRenderableManager
 {
 	private const String c_filename = "Files/overlay.png";
+	private static bool m_hasRegistered = false;
 
-	private Delegate m_delegate;
+	private static WeakReference m_delegate = null;
 	private bool m_active = false;
 	private bool m_shouldActivate = false;
-	private Texture2D[] m_originalMaps;
 
-	private DateTime m_lastBrytesWrite;
+	private DateTime m_lastBytesWrite;
 	private Texture2D m_lastTexture;
-	private Texture2D[] m_lastTileOverlays;
 
-	public void Awake()
+	float m_defaultDimension = 8640f;
+	float m_dimensionDelta = 0f;
+
+	public static void OnLevelLoaded()
 	{
+		OverLayerExtension.DebugLog("Is registered: " + m_hasRegistered);
+
+		if (!m_hasRegistered)
+		{
+			SimulationManager.RegisterManager(instance);
+			m_hasRegistered = true;
+
+			OverLayerExtension.DebugLog("Registered Manager");
+		}
+	}
+
+	protected override void Awake()
+	{
+		base.Awake();
 		enabled = true;
 	}
 
-	public void SetDelegate(Delegate p_delegate)
+	public static void SetDelegate(Delegate p_delegate)
 	{
-		m_delegate = p_delegate;
+		if (p_delegate != null)
+		{
+			m_delegate = new WeakReference(p_delegate);
+		}
 	}
 
 	public void Update()
@@ -158,52 +189,79 @@ internal class OverLayerTool : MonoBehaviour
 				return;
 			}
 
-			int l_patchesCount = Singleton<TerrainManager>.instance.m_patches.Length;
-			int i = 0;
-
-			if (m_lastTileOverlays == null || Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
-			{
-				m_lastTileOverlays = new Texture2D[l_patchesCount];
-
-				foreach (TerrainPatch terrainPatch in Singleton<TerrainManager>.instance.m_patches)
-				{
-					m_lastTileOverlays[i] = GetSubOverlay(l_overlay, terrainPatch.m_x, terrainPatch.m_z);
-					i++;
-				}
-			}
-
-			m_originalMaps = new Texture2D[l_patchesCount];
-
-			i = 0;
-			foreach (TerrainPatch terrainPatch in Singleton<TerrainManager>.instance.m_patches)
-			{
-				m_originalMaps[i] = terrainPatch.m_surfaceMapB;
-				terrainPatch.m_surfaceMapB = m_lastTileOverlays[i];
-				i++;
-			}
-
+			m_lastTexture = l_overlay;
+			m_lastTexture.Apply();
 			m_active = true;
 			NotifyDelegate();
 		}
 		else
 		{
-			int i = 0;
-			foreach (TerrainPatch terrainPatch in Singleton<TerrainManager>.instance.m_patches)
-			{
-				terrainPatch.m_surfaceMapB = m_originalMaps[i];
-				i++;
-			}
-
 			m_active = false;
 			NotifyDelegate();
 		}
 	}
 
+	protected override void SimulationStepImpl(int subStep)
+	{
+		if (!m_active)
+		{
+			return;
+		}
+
+		base.SimulationStepImpl(subStep);
+
+		float l_delta = 10f;
+
+		if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
+		{
+			l_delta *= 2f;
+		}
+		else if (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl))
+		{
+			l_delta /= 2f;
+		}
+
+		if (Input.GetKey(KeyCode.PageUp))
+		{
+			m_dimensionDelta += l_delta;
+		}
+		else if (Input.GetKey(KeyCode.PageDown))
+		{
+			m_dimensionDelta -= l_delta;
+		}
+		else if (Input.GetKey(KeyCode.Home))
+		{
+			m_dimensionDelta = l_delta;
+		}
+
+		m_dimensionDelta = Math.Min(Math.Max(m_dimensionDelta, -m_defaultDimension), m_defaultDimension);
+	}
+
+	protected override void EndOverlayImpl(RenderManager.CameraInfo cameraInfo)
+	{
+		base.EndOverlayImpl(cameraInfo);
+
+		if (!m_active) return;
+
+		float l_dimension = m_defaultDimension + m_dimensionDelta;
+		RenderManager renderManager = RenderManager.instance;
+
+		Quad3 position = new Quad3(
+			new Vector3(-l_dimension, 0, -l_dimension),
+			new Vector3(l_dimension, 0, -l_dimension),
+			new Vector3(l_dimension, 0, l_dimension),
+			new Vector3(-l_dimension, 0, l_dimension)
+		);
+
+		renderManager.OverlayEffect.DrawQuad(cameraInfo, m_lastTexture, Color.white, position, -1, 1000, true, true);
+	}
+
 	private void NotifyDelegate()
 	{
-		if (m_delegate != null)
+		if (m_delegate != null && m_delegate.Target != null)
 		{
-			m_delegate.OverLayerToolDidUpdateState(m_active);
+			Delegate l_delegate = (Delegate) m_delegate.Target;
+			l_delegate.OverLayerToolDidUpdateState(m_active);
 		}
 	}
 
@@ -213,19 +271,32 @@ internal class OverLayerTool : MonoBehaviour
 		{
 			DateTime l_newBytesWrite = File.GetLastWriteTime(c_filename);
 
-			if (m_lastBrytesWrite != null && m_lastTexture != null)
+			if (m_lastBytesWrite != null && m_lastTexture != null)
 			{
-				if (m_lastBrytesWrite.Equals(l_newBytesWrite))
+				if (m_lastBytesWrite.Equals(l_newBytesWrite))
 				{
 					return m_lastTexture;
 				}
 			}
 
 			byte[] l_bytes = File.ReadAllBytes(c_filename);
-			m_lastBrytesWrite = l_newBytesWrite;
+			m_lastBytesWrite = l_newBytesWrite;
+			
+			Texture2D l_texture = new Texture2D(p_width, p_height);
 			m_lastTexture = new Texture2D(p_width, p_height);
+
+			l_texture.LoadImage(l_bytes);
 			m_lastTexture.LoadImage(l_bytes);
-			m_lastTileOverlays = null;
+
+			for (int y = 0; y < l_texture.height; ++y)
+			{
+				for (int x = 0; x < l_texture.width; ++x)
+				{
+					Color l_color = l_texture.GetPixel(y, x);
+					l_color.a *= 0.75f;
+					m_lastTexture.SetPixel(x, y, l_color);
+				}
+			}
 
 			return m_lastTexture;
 		}
@@ -234,30 +305,6 @@ internal class OverLayerTool : MonoBehaviour
 			OverLayerExtension.DebugLog("Got exception: " + p_exception.Message);
 			return null;
 		}
-	}
-
-	Texture2D GetSubOverlay(Texture2D p_overlayImage, int p_X, int p_Y)
-	{
-		int l_amplitudeX = (int)Math.Floor(p_overlayImage.width / 9.0);
-		int l_amplitudeY = (int)Math.Floor(p_overlayImage.height / 9.0);
-
-		// On a tile of side 128, this will result in an offset of 4. Any number above/below 4 will not work properly. =(
-		int l_offsetX = (int)Math.Floor(l_amplitudeX * 0.03125);
-		int l_offsetY = (int)Math.Floor(l_amplitudeY * 0.03125);
-
-		Texture2D l_newTexture = new Texture2D(l_amplitudeX + l_offsetX * 2, l_amplitudeY + l_offsetY * 2);
-
-		for (int x = 0; x < l_amplitudeX + l_offsetX * 2; x++)
-		{
-			for (int y = 0; y < l_amplitudeY + l_offsetY * 2; y++)
-			{
-				l_newTexture.SetPixel(x, y, p_overlayImage.GetPixel(p_X * l_amplitudeX + x - l_offsetX,
-																		p_Y * l_amplitudeY + y - l_offsetY));
-			}
-		}
-		l_newTexture.Apply();
-
-		return l_newTexture;
 	}
 
 	public bool GetIsActive()
