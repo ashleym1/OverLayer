@@ -241,11 +241,11 @@ internal class OverLayerTool : SimulationManagerBase<OverLayerTool, MonoBehaviou
 			m_translation.y -= l_delta;
 		}
 
-		if (Input.GetKey(KeyCode.PageUp))
+		if (Input.GetKey(KeyCode.Period))
 		{
 			m_dimensionDelta += l_delta;
 		}
-		else if (Input.GetKey(KeyCode.PageDown))
+		else if (Input.GetKey(KeyCode.Comma))
 		{
 			m_dimensionDelta -= l_delta;
 		}
