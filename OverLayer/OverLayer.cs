@@ -132,8 +132,10 @@ internal class OverLayerTool : SimulationManagerBase<OverLayerTool, MonoBehaviou
 	private DateTime m_lastBytesWrite;
 	private Texture2D m_lastTexture;
 
-	float m_defaultDimension = 8640f;
+	const float m_defaultDimension = 8640f;
 	float m_dimensionDelta = 0f;
+
+	Vector2 m_translation = new Vector2(0f, 0f);
 
 	public static void OnLevelLoaded()
 	{
@@ -214,11 +216,29 @@ internal class OverLayerTool : SimulationManagerBase<OverLayerTool, MonoBehaviou
 
 		if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
 		{
-			l_delta *= 2f;
+			l_delta *= 5f;
 		}
 		else if (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl))
 		{
-			l_delta /= 2f;
+			l_delta /= 5f;
+		}
+
+		if (Input.GetKey(KeyCode.RightArrow))
+		{
+			m_translation.x += l_delta;
+		}
+		else if (Input.GetKey(KeyCode.LeftArrow))
+		{
+			m_translation.x -= l_delta;
+		}
+		
+		if (Input.GetKey(KeyCode.UpArrow))
+		{
+			m_translation.y += l_delta;
+		}
+		else if (Input.GetKey(KeyCode.DownArrow))
+		{
+			m_translation.y -= l_delta;
 		}
 
 		if (Input.GetKey(KeyCode.PageUp))
@@ -232,6 +252,8 @@ internal class OverLayerTool : SimulationManagerBase<OverLayerTool, MonoBehaviou
 		else if (Input.GetKey(KeyCode.Home))
 		{
 			m_dimensionDelta = l_delta;
+			m_translation.x = 0f;
+			m_translation.y = 0f;
 		}
 
 		m_dimensionDelta = Math.Min(Math.Max(m_dimensionDelta, -m_defaultDimension), m_defaultDimension);
@@ -247,10 +269,10 @@ internal class OverLayerTool : SimulationManagerBase<OverLayerTool, MonoBehaviou
 		RenderManager renderManager = RenderManager.instance;
 
 		Quad3 position = new Quad3(
-			new Vector3(-l_dimension, 0, -l_dimension),
-			new Vector3(l_dimension, 0, -l_dimension),
-			new Vector3(l_dimension, 0, l_dimension),
-			new Vector3(-l_dimension, 0, l_dimension)
+			new Vector3(-l_dimension + m_translation.x, 0, -l_dimension + m_translation.y),
+			new Vector3(l_dimension + m_translation.x, 0, -l_dimension + m_translation.y),
+			new Vector3(l_dimension + m_translation.x, 0, l_dimension + m_translation.y),
+			new Vector3(-l_dimension + m_translation.x, 0, l_dimension + m_translation.y)
 		);
 
 		renderManager.OverlayEffect.DrawQuad(cameraInfo, m_lastTexture, Color.white, position, -1, 1000, true, true);
@@ -271,13 +293,16 @@ internal class OverLayerTool : SimulationManagerBase<OverLayerTool, MonoBehaviou
 		{
 			DateTime l_newBytesWrite = File.GetLastWriteTime(c_filename);
 
-			if (m_lastBytesWrite != null && m_lastTexture != null)
+			if (m_lastBytesWrite != null && m_lastTexture != null && !Input.GetKey(KeyCode.LeftShift))
 			{
 				if (m_lastBytesWrite.Equals(l_newBytesWrite))
 				{
+					OverLayerExtension.DebugLog("Using cached image. Activate while holding shift to force reload.");
 					return m_lastTexture;
 				}
 			}
+
+			OverLayerExtension.DebugLog("Loading image.");
 
 			byte[] l_bytes = File.ReadAllBytes(c_filename);
 			m_lastBytesWrite = l_newBytesWrite;
@@ -288,13 +313,12 @@ internal class OverLayerTool : SimulationManagerBase<OverLayerTool, MonoBehaviou
 			l_texture.LoadImage(l_bytes);
 			m_lastTexture.LoadImage(l_bytes);
 
+			// We need to flip the image for some reason?
 			for (int y = 0; y < l_texture.height; ++y)
 			{
 				for (int x = 0; x < l_texture.width; ++x)
 				{
-					Color l_color = l_texture.GetPixel(y, x);
-					l_color.a *= 0.75f;
-					m_lastTexture.SetPixel(x, y, l_color);
+					m_lastTexture.SetPixel(x, y, l_texture.GetPixel(y, x));
 				}
 			}
 
