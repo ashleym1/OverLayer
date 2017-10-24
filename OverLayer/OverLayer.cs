@@ -23,7 +23,8 @@ public class OverLayerExtension : LoadingExtensionBase, OverLayerTool.Delegate
 {
 	private const String c_filename = "Files/overlay.png";
 
-	private UIButton m_button;
+	private UIMultiStateButton m_button;
+	private UISprite m_lockImage;
 
 	public override void OnLevelLoaded(LoadMode p_mode)
 	{
@@ -34,33 +35,87 @@ public class OverLayerExtension : LoadingExtensionBase, OverLayerTool.Delegate
 		var l_uiView = UIView.GetAView();
 
 		// Add a new button to the view.
-		m_button = (UIButton)l_uiView.AddUIComponent(typeof(UIButton));
+		m_button = (UIMultiStateButton)l_uiView.AddUIComponent(typeof(UIMultiStateButton));
+
+		// Attach a sprite to the button
+		m_lockImage = (UISprite)m_button.AddUIComponent(typeof(UISprite));
 
 		// Set the text to show on the button tooltip.
-		m_button.tooltip = "Terrain Contour";
-		m_button.tooltipAnchor = UITooltipAnchor.Floating;
+		m_button.tooltip = "OverLayer Switch - Right Click to lock layer movement (Ctrl+Shift+L).";
+		m_button.isTooltipLocalized = false;
 		m_button.RefreshTooltip();
+		m_button.spritePadding = new RectOffset();
 
 		// Set the button dimensions.
-		m_button.width = 42;
-		m_button.height = 42;
+		m_button.width = 36;
+		m_button.height = 36;
 
-		// Style the button to look like a menu button.
-		m_button.normalBgSprite = "OptionBase";
-		m_button.disabledBgSprite = "OptionBaseDisabled";
-		m_button.hoveredBgSprite = "OptionBaseHovered";
-		m_button.focusedBgSprite = "OptionBaseFocused";
-		m_button.pressedBgSprite = "OptionBasePressed";
-		m_button.normalFgSprite = "RoadOptionUpgrade";
-		m_button.hoveredFgSprite = "RoadOptionUpgradeHovered";
-		m_button.focusedFgSprite = "RoadOptionUpgradeFocused";
-		m_button.pressedFgSprite = "RoadOptionUpgradePressed";
+		// Set the lock image
+		m_lockImage.spriteName = "LockIcon";
+		m_lockImage.position = new Vector3(18, -18);
+		m_lockImage.width = 24;
+		m_lockImage.height = 24;
+		m_lockImage.Hide();
 
-		m_button.textColor = new Color32(255, 255, 255, 255);
-		m_button.disabledTextColor = new Color32(7, 7, 7, 255);
-		m_button.hoveredTextColor = new Color32(7, 132, 255, 255);
-		m_button.focusedTextColor = new Color32(255, 255, 255, 255);
-		m_button.pressedTextColor = new Color32(30, 30, 44, 255);
+		if (m_lockImage.atlas == null || m_lockImage.atlas.material == null)
+		{
+			DebugLog("Could not get reference material!!!");
+			return;
+		}
+
+		// The sprite for the button can't be added to the InGame atlas, since the sprite data
+		// seems to come from the atlas's texture, instead of the texture supplied by the SpriteData.
+		// So a whole new atlas with the toggle button base images duplicated is needed.
+		// Thanks to https://github.com/onewaycitystreets/StreetDirectionViewer/blob/master/ui/StreetDirectionViewerUI.cs
+
+		String[] iconNames = {
+			"RoadArrowIcon",
+			"Base",
+			"BaseFocused",
+			"BaseHovered",
+			"BasePressed",
+			"BaseDisabled",
+		};
+
+		m_button.atlas = CreateTextureAtlas("OverLayer.OverlayIcon.png", "OverLayer Atlas", m_lockImage.atlas.material, 36, 36, iconNames);
+
+		// Background sprites
+
+		// Disabled state
+		UIMultiStateButton.SpriteSet backgroundSpriteSet0 = m_button.backgroundSprites[0];
+		backgroundSpriteSet0.normal = "Base";
+		backgroundSpriteSet0.disabled = "Base";
+		backgroundSpriteSet0.hovered = "BaseHovered";
+		backgroundSpriteSet0.pressed = "Base";
+		backgroundSpriteSet0.focused = "Base";
+
+		// Enabled state
+		m_button.backgroundSprites.AddState();
+		UIMultiStateButton.SpriteSet backgroundSpriteSet1 = m_button.backgroundSprites[1];
+		backgroundSpriteSet1.normal = "BaseFocused";
+		backgroundSpriteSet1.disabled = "BaseFocused";
+		backgroundSpriteSet1.hovered = "BaseFocused";
+		backgroundSpriteSet1.pressed = "BaseFocused";
+		backgroundSpriteSet1.focused = "BaseFocused";
+
+		// Forground sprites
+
+		// Disabled state
+		UIMultiStateButton.SpriteSet foregroundSpriteSet0 = m_button.foregroundSprites[0];
+		foregroundSpriteSet0.normal = "RoadArrowIcon";
+		foregroundSpriteSet0.disabled = "RoadArrowIcon";
+		foregroundSpriteSet0.hovered = "RoadArrowIcon";
+		foregroundSpriteSet0.pressed = "RoadArrowIcon";
+		foregroundSpriteSet0.focused = "RoadArrowIcon";
+
+		// Enabled state
+		m_button.foregroundSprites.AddState();
+		UIMultiStateButton.SpriteSet foregroundSpriteSet1 = m_button.foregroundSprites[1];
+		foregroundSpriteSet1.normal = "RoadArrowIcon";
+		foregroundSpriteSet1.disabled = "RoadArrowIcon";
+		foregroundSpriteSet1.hovered = "RoadArrowIcon";
+		foregroundSpriteSet1.pressed = "RoadArrowIcon";
+		foregroundSpriteSet1.focused = "RoadArrowIcon";
 
 		// Enable button sounds.
 		m_button.playAudioEvents = true;
@@ -69,7 +124,7 @@ public class OverLayerExtension : LoadingExtensionBase, OverLayerTool.Delegate
 		m_button.transformPosition = new Vector3(-1.11f, 0.98f);
 
 		// Respond to button click.
-		m_button.eventClicked += ButtonClick;
+		m_button.eventMouseUp += ButtonMouseUp;
 
 		try
 		{
@@ -94,13 +149,22 @@ public class OverLayerExtension : LoadingExtensionBase, OverLayerTool.Delegate
 		}
 	}
 
-	private void ButtonClick(UIComponent p_component, UIMouseEventParameter p_eventParam)
+	private void ButtonMouseUp(UIComponent p_component, UIMouseEventParameter p_eventParam)
 	{
 		OverLayerTool l_overLayerTool = OverLayerTool.instance;
 
-		if (l_overLayerTool != null)
+		if (l_overLayerTool == null)
+		{
+			return;
+		}
+
+		if (p_eventParam.buttons == UIMouseButton.Left)
 		{
 			l_overLayerTool.ToggleActive();
+		}
+		else
+		{
+			l_overLayerTool.ToggleLocked();
 		}
 	}
 
@@ -109,14 +173,89 @@ public class OverLayerExtension : LoadingExtensionBase, OverLayerTool.Delegate
 		DebugOutputPanel.AddMessage(ColossalFramework.Plugins.PluginManager.MessageType.Message, "[OverLayer] " + p_message);
 	}
 
-	public void OverLayerToolDidUpdateState(bool p_newState)
+	public void OverLayerToolDidUpdateState(ModState p_newState)
 	{
-		m_button.state = p_newState ? UIButton.ButtonState.Focused : UIButton.ButtonState.Normal;
-
-		if (!p_newState && m_button != null)
+		if (m_button == null)
 		{
-			m_button.Unfocus();
+			return;
 		}
+
+		switch (p_newState)
+		{
+			case ModState.off:
+				m_button.activeStateIndex = 0;
+				m_button.Unfocus();
+				m_lockImage.Hide();
+				break;
+
+			case ModState.on:
+				m_button.activeStateIndex = 1;
+				m_lockImage.Hide();
+				break;
+
+			case ModState.locked:
+				m_button.activeStateIndex = 1;
+				m_lockImage.Show();
+				break;
+		}
+	}
+
+	private static UITextureAtlas CreateTextureAtlas(string textureFile, string atlasName, Material baseMaterial, int spriteWidth, int spriteHeight, string[] spriteNames)
+	{
+		Texture2D texture = new Texture2D(spriteWidth * spriteNames.Length, spriteHeight, TextureFormat.ARGB32, false);
+		texture.filterMode = FilterMode.Bilinear;
+
+		{ // LoadTexture
+			System.Reflection.Assembly assembly = System.Reflection.Assembly.GetExecutingAssembly();
+			Stream textureStream = assembly.GetManifestResourceStream(textureFile);
+
+			if (textureStream == null)
+			{
+				DebugLog("Failed loading image!!");
+				return null;
+			}
+
+			byte[] buf = new byte[textureStream.Length];  //declare arraysize
+			textureStream.Read(buf, 0, buf.Length); // read from stream to byte array
+
+			texture.LoadImage(buf);
+
+			texture.Apply(true, true);
+		}
+
+		UITextureAtlas atlas = ScriptableObject.CreateInstance<UITextureAtlas>();
+
+		{ // Setup atlas
+			Material material = (Material)Material.Instantiate(baseMaterial);
+			material.mainTexture = texture;
+
+			atlas.material = material;
+			atlas.name = atlasName;
+		}
+
+		// Add sprites
+		for (int i = 0; i < spriteNames.Length; ++i)
+		{
+			float uw = 1.0f / spriteNames.Length;
+
+			var spriteInfo = new UITextureAtlas.SpriteInfo()
+			{
+				name = spriteNames[i],
+				texture = texture,
+				region = new Rect(i * uw, 0, uw, 1),
+			};
+
+			atlas.AddSprite(spriteInfo);
+		}
+
+		return atlas;
+	}
+
+	public enum ModState
+	{
+		off,
+		on,
+		locked
 	}
 }
 
@@ -128,6 +267,8 @@ internal class OverLayerTool : SimulationManagerBase<OverLayerTool, MonoBehaviou
 	private static WeakReference m_delegate = null;
 	private bool m_active = false;
 	private bool m_shouldActivate = false;
+	private bool m_locked = false;
+	private bool m_shouldLock = false;
 
 	private DateTime m_lastBytesWrite;
 	private Texture2D m_lastTexture;
@@ -170,11 +311,21 @@ internal class OverLayerTool : SimulationManagerBase<OverLayerTool, MonoBehaviou
 		{
 			ToggleActiveInternal();
 		}
+
+		if (m_locked != m_shouldLock)
+		{
+			ToggleLockInternal();
+		}
 	}
 
 	public void ToggleActive()
 	{
 		m_shouldActivate = !m_active;
+	}
+
+	public void ToggleLocked()
+	{
+		m_shouldLock = !m_locked;
 	}
 
 	private void ToggleActiveInternal()
@@ -203,22 +354,50 @@ internal class OverLayerTool : SimulationManagerBase<OverLayerTool, MonoBehaviou
 		}
 	}
 
+	private void ToggleLockInternal()
+	{
+		m_locked = !m_locked;
+		NotifyDelegate();
+	}
+
+	private bool isShiftHeld()
+	{
+		return Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
+	}
+
+	private bool isControlHeld()
+	{
+		return Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl);
+	}
+
 	protected override void SimulationStepImpl(int subStep)
 	{
+		base.SimulationStepImpl(subStep);
+
 		if (!m_active)
 		{
 			return;
 		}
 
-		base.SimulationStepImpl(subStep);
+		if (isControlHeld() && isShiftHeld() && Input.GetKeyUp(KeyCode.L))
+		{
+			m_locked = !m_locked;
+			m_shouldLock = m_locked;
+			NotifyDelegate();
+		}
+
+		if (m_locked)
+		{
+			return;
+		}
 
 		float l_delta = 5f;
 
-		if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
+		if (isShiftHeld())
 		{
 			l_delta *= 10f;
 		}
-		else if (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl))
+		else if (isControlHeld())
 		{
 			l_delta /= 10f;
 		}
@@ -283,7 +462,25 @@ internal class OverLayerTool : SimulationManagerBase<OverLayerTool, MonoBehaviou
 		if (m_delegate != null && m_delegate.Target != null)
 		{
 			Delegate l_delegate = (Delegate) m_delegate.Target;
-			l_delegate.OverLayerToolDidUpdateState(m_active);
+			OverLayerExtension.ModState l_state;
+
+			if (m_active)
+			{
+				if (m_locked)
+				{
+					l_state = OverLayerExtension.ModState.locked;
+				}
+				else
+				{
+					l_state = OverLayerExtension.ModState.on;
+				}
+			}
+			else
+			{
+				l_state = OverLayerExtension.ModState.off;
+			}
+
+			l_delegate.OverLayerToolDidUpdateState(l_state);
 		}
 	}
 
@@ -338,6 +535,6 @@ internal class OverLayerTool : SimulationManagerBase<OverLayerTool, MonoBehaviou
 
 	public interface Delegate
 	{
-		void OverLayerToolDidUpdateState(bool p_newState);
+		void OverLayerToolDidUpdateState(OverLayerExtension.ModState p_newState);
 	}
 }
